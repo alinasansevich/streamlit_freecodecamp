@@ -102,11 +102,6 @@ st.write("""
 # and etc.
 
 #####################################
-all_gc = []
-start = 0
-end = 30
-window = sequence[start:end]
-
 # Count(G + C)/Count(A + T + G + C) * 100%
 def gc_content(window):
     """
@@ -118,15 +113,13 @@ def gc_content(window):
     
     return (gc/atgc) * 100
 
-
+# "Walk" over the sequence and calculate the GC content for each 30 nucleotide window
+all_gc = []
 for i in range(len(sequence) - 30):
-    gc_cont = gc_content(sequence[i:i+30])
+    seq = sequence[i:i+30]
+    gc_cont = gc_content(seq)
     all_gc.append(gc_cont)
 
-# TCTCTTGAAGGCAAACTACAAGAAAACCGA --> ??????????
-# AGTCATCTTTATAAACCACCGGTTATGTTA --> window 0
-
-# window != sequence[-31:-1]:
 
 
 
