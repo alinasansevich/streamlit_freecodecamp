@@ -7,7 +7,7 @@ Created on Mon Jan 11 14:16:09 2021
 
 GC Content Calculator Web App
 """
-
+import numpy as np
 import pandas as pd
 import streamlit as st
 import altair as alt
@@ -30,7 +30,9 @@ This app calculates the GC content of query DNA! XXXXXXX
 
 #st.sidebar.header('Enter DNA sequence')
 st.header('Enter DNA sequence')
-
+st.subheader('Paste sequence in FASTA format.')
+st.write('Base Type: Only accept four letters ATGC (case-insensitive)')
+st.write('Window Size: 30 nucleotides')
 
 sequence_input = """>NM_119948.4 Arabidopsis thaliana phosphoenolpyruvate carboxykinase 1 (PCK1), mRNA
 AGTCATCTTTATAAACCACCGGTTATGTTAAGAGAGAAAATAAAAATAAAAAAGGGGCTCTTCCTAGGAA
@@ -72,7 +74,7 @@ AATGATGATGACTATATGTAATTTATTACTATCCATCGTCATATATTTTTGTTGGGCCTTTGCCAACATT
 TACATGATAGAACCAAGTACGAATAATATAAATTCTGGTCCAATCTGATGATGATTTTCAAAA
 """
 
-#sequence = st.sidebar.text_area("Sequence input", sequence_input, height=250)
+# sequence = st.sidebar.text_area("Sequence input", sequence_input, height=250)
 sequence = st.text_area("Sequence input", sequence_input, height=250)
 sequence = sequence.splitlines()
 sequence = sequence[1:] # Skips the sequence name (first line)
@@ -115,17 +117,87 @@ def gc_content(window):
 
 # "Walk" over the sequence and calculate the GC content for each 30 nucleotide window
 all_gc = []
+all_windows = []
 for i in range(len(sequence) - 30):
     seq = sequence[i:i+30]
     gc_cont = gc_content(seq)
     all_gc.append(gc_cont)
+    all_windows.append(seq)
 
+# create GC content distribution graph
+window_num = np.arange(1, len(all_gc)+1)
+df_gc = pd.DataFrame({
+    'window_num': window_num,
+    'gc': all_gc
+    })
+gc_plot = alt.Chart(df_gc).mark_line(point=True).encode(x='window_num', y='gc')   
+st.write(gc_plot)
+
+
+
+# Display GC Content vs Window number
+st.subheader('Window number vs GC content')
+# df = pd.DataFrame.from_dict(X, orient='index')
+# df = df.rename({0: 'count'}, axis='columns')
+# df.reset_index(inplace=True)
+# df = df.rename(columns = {'index':'nucleotide'})
+
+################## round(x, 2)
+
+# h_letters = [ letter for letter in 'human' ]
+
+# all_gc_round = [round(x, 2) for x in all_gc] 
+
+all_gc_round = []
+for num in all_gc:
+    all_gc_round.append(round(num, 2)
+
+df_gc_windows = pd.DataFrame({
+    'window_num': window_num,
+    'gc': all_gc_round,
+    'window': all_windows
+    })
+
+st.write(df_gc_windows)
+
+### 1. Print dictionary
+st.subheader('1. Print dictionary')
+def DNA_nucleotide_count(seq):
+  d = dict([
+            ('A',seq.count('A')),
+            ('T',seq.count('T')),
+            ('G',seq.count('G')),
+            ('C',seq.count('C'))
+            ])
+  return d
+
+X = DNA_nucleotide_count(sequence)
+### 3. Display DataFrame
+st.subheader('3. Display DataFrame')
+df = pd.DataFrame.from_dict(X, orient='index')
+df = df.rename({0: 'count'}, axis='columns')
+df.reset_index(inplace=True)
+df = df.rename(columns = {'index':'nucleotide'})
+st.write(df)
+### 4. Display Bar Chart using Altair
+st.subheader('4. Display Bar chart')
+p = alt.Chart(df).mark_bar().encode(
+    x='nucleotide',
+    y='count'
+)
+p = p.properties(
+    width=alt.Step(80)  # controls width of bar.
+)
+st.write(p)
 
 
 
 # add something like this:
 # Summary: Full Length(2583bp) | A(28% 724) | T(29% 739) | G(23% 598) | C(20% 522)
-
+st.write("""
+Summary: Full Length(2583bp) | A(28% 724) | T(29% 739) | G(23% 598) | C(20% 522)
+***
+""")
 
 
 # gc content distribution graph
