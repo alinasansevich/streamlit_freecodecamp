@@ -59,7 +59,6 @@ def seq_summary(nucleotide_count):
     return summary
 
 
-
 ##### Page Title + Text
 image = Image.open('GC-content_calculator.jpeg')
 
@@ -82,13 +81,13 @@ since a higher GC-content level indicates a relatively higher melting temperatur
 """)
 
 ##### Input Text Box
-#st.sidebar.header('Enter DNA sequence')
+st.sidebar.header('GC Content Calculator Web App')    ### 
 st.header('Enter DNA sequence')
-st.subheader('Paste sequence in FASTA format.')
+st.subheader('Paste sequence in FASTA format, then press Ctrl+Enter to apply.')
 st.write('Base Type: Only accepts four letters ATGC (case-insensitive)')
 st.write('Window Size: 30 nucleotides')
 
-sequence_input = """>NM_119948.4 Arabidopsis thaliana phosphoenolpyruvate carboxykinase 1 (PCK1), mRNA
+sequence_input = """>Test sequence
 AGTCATCTTTATAAACCACCGGTTATGTTAAGAGAGAAAATAAAAATAAAAAAGGGGCTCTTCCTAGGAA
 GATAGATCTTAACCATGGTTAACACTCTCACGGTTCATTATTAACCATGGTTCTAAAAATCTAACCTTTA
 AAAAACCACTTTCGCTTCTCTTCACATTCGCATCATTTTGTATCATCCCTTGAAAACGTTAAATGATCTT
@@ -125,8 +124,7 @@ AGATTGGTGTGGATGGTAAGCTTACGGAGGAGATTCTCGCTGCTGGTCCTATCTTTTAGAAAAACCAAAC
 TCTGAATGATGTTGTCGAAAAGAAAGAAAGATCTACTATTATTAAGAAGAATAAAATGAGACTTTGTGTT
 TTTCTTTGCTGTGATAATCTCTCTGAATAATAGAGAGAATTTAATGTTCCAAATGTGGTGCGATATGGAT
 AATGATGATGACTATATGTAATTTATTACTATCCATCGTCATATATTTTTGTTGGGCCTTTGCCAACATT
-TACATGATAGAACCAAGTACGAATAATATAAATTCTGGTCCAATCTGATGATGATTTTCAAAA
-"""
+TACATGATAGAACCAAGTACGAATAATATAAATTCTGGTCCAATCTGATGATGATTTTCAAAA"""
 
 # remove header
 sequence = st.text_area("Sequence input", sequence_input, height=250)
@@ -150,12 +148,12 @@ for i in range(len(sequence) - 30):
 ##### create GC content distribution graph
 window_num = np.arange(1, len(all_gc)+1)
 df_gc = pd.DataFrame({
-    'window_num': window_num,
-    'gc': all_gc
+    'Window Number': window_num,
+    'GC%': all_gc
     })
 
 # plot
-gc_plot = alt.Chart(df_gc).mark_line(point=True).encode(x='window_num', y='gc')   
+gc_plot = alt.Chart(df_gc).mark_line(point=True).encode(x='Window Number', y='GC%')   
 st.write(gc_plot)
 
 ##### Display Summary:
@@ -174,61 +172,11 @@ st.subheader('GC content for each window:')
 # df.reset_index(inplace=True)
 # df = df.rename(columns = {'index':'nucleotide'})
 
-all_gc_round = [round(x, 2) for x in all_gc] 
+all_gc_round = [round(x) for x in all_gc] 
+
 gc_windows = {'Window #': window_num,
               'GC content': all_gc_round,
               'Sequence': all_windows}
 df_gc_windows = pd.DataFrame.from_dict(gc_windows)
 
 st.write(df_gc_windows)
-
-
-
-### 3. Display DataFrame   REMOVE?????????????
-st.subheader('3. Display DataFrame')
-df = pd.DataFrame.from_dict(nucleotide_count, orient='index')
-df = df.rename({0: 'count'}, axis='columns')
-df.reset_index(inplace=True)
-df = df.rename(columns = {'index':'nucleotide'})
-st.write(df)
-### 4. Display Bar Chart using Altair
-st.subheader('4. Display Bar chart')
-p = alt.Chart(df).mark_bar().encode(
-    x='nucleotide',
-    y='count'
-)
-p = p.properties(
-    width=alt.Step(80)  # controls width of bar.
-)
-st.write(p)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
