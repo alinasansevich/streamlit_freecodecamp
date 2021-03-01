@@ -16,6 +16,20 @@ import altair as alt
 from PIL import Image
 
 
+sequence_input = """>Test sequence
+AGTCATCTTTATAAACCACCGGTTATGTTAAGAGAGAAAATAAAAATAAAAAAGGGGCTCTTCCTAGGAA
+GATAGATCTTAACCATGGTTAACACTCTCACGGTTCATTATTAACCATGGTTCTAAAAATCTAACCTTTA
+AAAAACCACTTTCGCTTCTCTTCACATTCGCATCATTTTGTATCATCCCTTGAAAACGTTAAATGATCTT
+CTCCTCCGATCATTAGTCTCTTTAATCTTTCTCAGCCTCTTCTTGTTCGTGATCTCTCTTCCTCCGGAAA
+AAGATGTCGGCCGGTAACGGAAATGCTACTAACGGTGACGGAGGGTTTAGTTTCCCTAAAGGACCGGTGA
+TGCCGAAGATAACGACCGGAGCAGCAAAGAGAGGTAGCGGAGTCTGCCACGACGATAGTGGTCCGACGGT
+GAATGCCACAACCATCGATGAGCTTCATTCGTTACAGAAGAAACGTTCTGCTCCTACCACACCGATCAAC
+CAAAACGCCGCCGCTGCTTTTGCCGCCGTCTCCGAGGAGGAGCGTCAGAAGATTCAGCTTCAATCTATCA
+GTGCATCGTTAGCATCGTTAACGAGAGAGTCAGGACCAAAGGTGGTGAGAGGAGATCCGGCGGAGAAGAA
+GACCGATGGTTCAACTACTCCGGCGTACGCTCACGGCCAACATCATTCTATCTTTTCTCCGGCTACTGGT
+"""
+
+
 # Count(G + C)/Count(A + T + G + C) * 100%
 def gc_content(window):
     """
@@ -41,11 +55,12 @@ def DNA_nucleotide_count(seq):
         ])
     return d
 
+
 def seq_summary(nucleotide_count):
     """
     (dict) -> str
 
-    Returns a summary of theljkgjcgh
+    Returns the nucleotide count and the length of the complete sequence.
     """
     full_length = sum(nucleotide_count.values())
     a = round(nucleotide_count['A'] * 100 / full_length)
@@ -58,6 +73,46 @@ def seq_summary(nucleotide_count):
     
     return summary
 
+
+def remove_header(input_seq):
+    """
+    (str) -> str
+    Checks if input_seq has a header, then removes it.
+    Returns a str of the full DNA sequence.
+    """
+
+    if input_seq.startswith('>'):
+        # remove header from sequence
+        sequence = input_seq.splitlines()
+        sequence = sequence[1:] # Skips the sequence name (first line)
+        sequence = ''.join(sequence) # Concatenates list to string
+        return sequence
+    else:
+        sequence = input_seq.splitlines()
+        sequence = ''.join(sequence) # Concatenates list to string
+        return sequence
+
+
+def gc_per_window(sequence):
+    """
+    (str) -> list, list
+    "Walk" over the sequence and calculate the GC content for each 30 nucleotide window.
+    Returns 2 lists:
+    * "all_gc" contains the GC content values,
+    * "all_windows" contains the sequence of each 30 bp window. 
+    """
+    all_gc = []
+    all_windows = []
+    for i in range(len(sequence) - 30):
+        seq = sequence[i:i+30]
+        gc_cont = gc_content(seq)
+        all_gc.append(gc_cont)
+        all_windows.append(seq)
+
+    return all_gc, all_windows
+
+
+########################## Web App starts here ##########################
 
 ##### Page Title + Text
 image = Image.open('GC_content_calculator.jpeg')
@@ -81,51 +136,30 @@ since a higher GC-content level indicates a relatively higher melting temperatur
 ##### Input Text Box
 #st.sidebar.header('GC Content Calculator Web App')
 st.header('Enter DNA sequence')
-st.subheader('Paste sequence in FASTA format, then press Ctrl+Enter to apply.')
+st.subheader('Paste raw sequence or in FASTA format, then press Ctrl+Enter to apply.')
 st.write('Base Type: Only accepts four letters ATGC (case-insensitive)')
 st.write('Window Size: 30 nucleotides')
-
-sequence_input = """>Test sequence
-AGTCATCTTTATAAACCACCGGTTATGTTAAGAGAGAAAATAAAAATAAAAAAGGGGCTCTTCCTAGGAA
-GATAGATCTTAACCATGGTTAACACTCTCACGGTTCATTATTAACCATGGTTCTAAAAATCTAACCTTTA
-AAAAACCACTTTCGCTTCTCTTCACATTCGCATCATTTTGTATCATCCCTTGAAAACGTTAAATGATCTT
-CTCCTCCGATCATTAGTCTCTTTAATCTTTCTCAGCCTCTTCTTGTTCGTGATCTCTCTTCCTCCGGAAA
-AAGATGTCGGCCGGTAACGGAAATGCTACTAACGGTGACGGAGGGTTTAGTTTCCCTAAAGGACCGGTGA
-TGCCGAAGATAACGACCGGAGCAGCAAAGAGAGGTAGCGGAGTCTGCCACGACGATAGTGGTCCGACGGT
-GAATGCCACAACCATCGATGAGCTTCATTCGTTACAGAAGAAACGTTCTGCTCCTACCACACCGATCAAC
-CAAAACGCCGCCGCTGCTTTTGCCGCCGTCTCCGAGGAGGAGCGTCAGAAGATTCAGCTTCAATCTATCA
-GTGCATCGTTAGCATCGTTAACGAGAGAGTCAGGACCAAAGGTGGTGAGAGGAGATCCGGCGGAGAAGAA
-GACCGATGGTTCAACTACTCCGGCGTACGCTCACGGCCAACATCATTCTATCTTTTCTCCGGCTACTGGT
-"""
-
-# remove header
-sequence = st.text_area("Sequence input", sequence_input, height=250)
-sequence = sequence.splitlines()
-sequence = sequence[1:] # Skips the sequence name (first line)
-sequence = ''.join(sequence) # Concatenates list to string
 
 st.write("""
 ***
 """)
 
-# "Walk" over the sequence and calculate the GC content for each 30 nucleotide window
-all_gc = []
-all_windows = []
-for i in range(len(sequence) - 30):
-    seq = sequence[i:i+30]
-    gc_cont = gc_content(seq)
-    all_gc.append(gc_cont)
-    all_windows.append(seq)
+# get input sequence
+input_seq = st.text_area("Sequence input", sequence_input, height=250)
+sequence = remove_header(input_seq)
+# calculate GC content for each 30 bp window and get all windows' sequences
+all_gc, all_windows = gc_per_window(sequence)
 
 ##### create GC content distribution graph
 window_num = np.arange(1, len(all_gc)+1)
 df_gc = pd.DataFrame({
-    'Window Number': window_num,
+    'Window Position': window_num,
     'GC%': all_gc
     })
 
 # plot
-gc_plot = alt.Chart(df_gc).mark_line(point=True).encode(x='Window Number', y='GC%')   
+st.write('GC content distribution')
+gc_plot = alt.Chart(df_gc).mark_line(point=True).encode(x='Window Position', y='GC%')   
 st.write(gc_plot)
 
 
@@ -136,7 +170,7 @@ st.write(s)
 st.write("""***""")
 
 
-##### Display DataFrame: GC Content vs Window number
+##### Display DataFrame: GC Content vs Window Position
 st.subheader('GC content for each window:')
 # df = pd.DataFrame.from_dict(X, orient='index')
 # df = df.rename({0: 'count'}, axis='columns')
