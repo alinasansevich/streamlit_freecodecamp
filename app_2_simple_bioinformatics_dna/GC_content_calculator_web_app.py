@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jan 11 14:16:09 2021
-
 @author: alina
-
 GC Content Calculator Web App
-
 Idea from: https://www.youtube.com/watch?v=JwSS70SZdyM
 """
 import numpy as np
@@ -59,7 +56,6 @@ def DNA_nucleotide_count(seq):
 def seq_summary(nucleotide_count):
     """
     (dict) -> str
-
     Returns the nucleotide count and the length of the complete sequence.
     """
     full_length = sum(nucleotide_count.values())
@@ -93,18 +89,19 @@ def remove_header(input_seq):
         return sequence
 
 
-def gc_per_window(sequence):
+def gc_per_window(sequence, window_size):
     """
     (str) -> list, list
-    "Walk" over the sequence and calculate the GC content for each 30 nucleotide window.
+    "Walk" over the sequence and calculate the GC content for each window_size nucleotide window.
     Returns 2 lists:
     * "all_gc" contains the GC content values,
-    * "all_windows" contains the sequence of each 30 bp window. 
+    * "all_windows" contains the sequence of each window_size bp window.
+    * window_size options: 10, 20, 30, 40, or 50 bp, 30 by default.
     """
     all_gc = []
     all_windows = []
-    for i in range(len(sequence) - 30):
-        seq = sequence[i:i+30]
+    for i in range(len(sequence) - window_size):
+        seq = sequence[i:i+window_size]
         gc_cont = gc_content(seq)
         all_gc.append(gc_cont)
         all_windows.append(seq)
@@ -112,6 +109,51 @@ def gc_per_window(sequence):
     return all_gc, all_windows
 
 
+########################## Web App functions ############################
+
+
+def run_app():
+    sequence = remove_header(input_seq)
+    # calculate GC content for each window_size bp window and get all windows' sequences
+    all_gc, all_windows = gc_per_window(sequence, window_size)
+
+    ##### create GC content distribution graph
+    window_num = np.arange(1, len(all_gc)+1)
+    df_gc = pd.DataFrame({
+        'Window Position': window_num,
+        'GC%': all_gc
+        })
+
+    # plot
+    st.write('GC content distribution')
+    gc_plot = alt.Chart(df_gc).mark_line(point=True).encode(x='Window Position', y='GC%')   
+    st.write(gc_plot)
+
+
+    ##### Display Summary:
+    nucleotide_count = DNA_nucleotide_count(sequence)
+    s = seq_summary(nucleotide_count)
+    st.write(s)
+    st.write("""***""")
+
+
+    ##### Display DataFrame: GC Content vs Window Position
+    st.subheader('GC content for each window:')
+    # df = pd.DataFrame.from_dict(X, orient='index')
+    # df = df.rename({0: 'count'}, axis='columns')
+    # df.reset_index(inplace=True)
+    # df = df.rename(columns = {'index':'nucleotide'})
+
+    all_gc_round = [round(x) for x in all_gc] 
+
+    gc_windows = {'Window #': window_num,
+                  'GC content': all_gc_round,
+                  'Sequence': all_windows}
+    df_gc_windows = pd.DataFrame.from_dict(gc_windows)
+
+    st.write(df_gc_windows)
+
+    
 ########################## Web App starts here ##########################
 
 ##### Page Title + Text
@@ -123,68 +165,37 @@ st.write("""
 ## What is GC Content?
  
 GC content percentage is calculated as Count(G + C)/Count(A + T + G + C) * 100%.
-
 The GC pair is bound by three hydrogen bonds, while AT pairs are bound by two hydrogen bonds.
 This means that the GC content affects the stability of DNA molecules, the secondary structure of mRNAs
 and the annealing temperature for primers and template DNA in PCR experiments.
-
-Knowing the GC-content of a DNA region is useful when designing primers for PCR experiments,
-since a higher GC-content level indicates a relatively higher melting temperature.
+Knowing the GC content of a DNA region is useful when designing primers for PCR experiments,
+since a higher GC content level indicates a relatively higher melting temperature.
 ***
 """)
 
 ##### Input Text Box
 #st.sidebar.header('GC Content Calculator Web App')
 st.header('Enter DNA sequence')
-st.subheader('Paste raw sequence or in FASTA format, then press Ctrl+Enter to apply.')
+st.subheader('Paste sequence below (raw or FASTA format), then choose window size.')
 st.write('Base Type: Only accepts four letters ATGC (case-insensitive)')
-st.write('Window Size: 30 nucleotides')
+
+##### get input sequence
+input_seq = st.text_area("Sequence input", sequence_input, height=250)
+
+##### Window Size drop-down menu
+window_size = st.selectbox(label='Choose Window Size',
+                         options=[10, 20, 30, 40, 50],
+                         index=2)
+
+##### Add button
+button = st.button('Calculate')
+if (button==True):
+    run_app() # st.write('run_app') #! replace with your function
 
 st.write("""
 ***
 """)
 
-# get input sequence
-input_seq = st.text_area("Sequence input", sequence_input, height=250)
-sequence = remove_header(input_seq)
-# calculate GC content for each 30 bp window and get all windows' sequences
-all_gc, all_windows = gc_per_window(sequence)
-
-##### create GC content distribution graph
-window_num = np.arange(1, len(all_gc)+1)
-df_gc = pd.DataFrame({
-    'Window Position': window_num,
-    'GC%': all_gc
-    })
-
-# plot
-st.write('GC content distribution')
-gc_plot = alt.Chart(df_gc).mark_line(point=True).encode(x='Window Position', y='GC%')   
-st.write(gc_plot)
-
-
-##### Display Summary:
-nucleotide_count = DNA_nucleotide_count(sequence)
-s = seq_summary(nucleotide_count)
-st.write(s)
-st.write("""***""")
-
-
-##### Display DataFrame: GC Content vs Window Position
-st.subheader('GC content for each window:')
-# df = pd.DataFrame.from_dict(X, orient='index')
-# df = df.rename({0: 'count'}, axis='columns')
-# df.reset_index(inplace=True)
-# df = df.rename(columns = {'index':'nucleotide'})
-
-all_gc_round = [round(x) for x in all_gc] 
-
-gc_windows = {'Window #': window_num,
-              'GC content': all_gc_round,
-              'Sequence': all_windows}
-df_gc_windows = pd.DataFrame.from_dict(gc_windows)
-
-st.write(df_gc_windows)
 
 st.info("""\
           
